@@ -8,7 +8,7 @@ from scipy.spatial.distance import  squareform
 from sklearn.metrics import silhouette_score
 
 # File path
-file_path= './report/multiple_level/OR_single.match.structural.similarity.rule_06.csv'
+file_path= './report/multiple_level/OR_single.match.structural.similarity.rule_08.csv'
 
 # Load data from the CSV file
 data = pd.read_csv(file_path)
@@ -53,13 +53,13 @@ dn = dendrogram(Z, labels=data['model_name'].values)
 # 0.0 ad avere che ogni singolo elemento è un cluster
 #########################################################
 # Possibile taglio, dataset di progetti selezionati, regola multi level:
-# 1- soglia 0.2, valore taglio 0.4
-# 2- soglia 0.4, valore taglio 0.35
-# 3- soglia 0.6, valore taglio 0.4/0.35
-# 4- soglia 0.8, valore taglio 0.3
+# 1- soglia 0.2, valore taglio 0.35 (0.49435585086747874)
+# 2- soglia 0.4, valore taglio 0.4 (0.6452050465514358)
+# 3- soglia 0.6, valore taglio 0.4 (0.6248658309736844)
+# 4- soglia 0.8, valore taglio 0.4 (0.5989859109716965)
+# Nota: i valori riportati sopra massimizzano la silhouette media
 #########################################################
 cut_height = 0.4  # Puoi regolare questo valore in base alle tue esigenze
-
 # Assegna i cluster in base all'altezza di taglio
 labels = fcluster(Z, t=cut_height, criterion='distance')
 
@@ -76,6 +76,11 @@ for i, label in enumerate(labels):
 # Stampa le etichette per ciascun cluster
 for cluster_num, cluster_labels in clusters.items():
     print(f"Cluster {cluster_num}: {cluster_labels}")
+
+# Calcola l'indice di silhouette per tutti i campioni insieme
+# Nota: se si vuole calcolare la silhouette dei singoli cluster è necessario che il cluster contenga almeno 2 label
+silhouette_avg = silhouette_score(similarities, labels, metric='precomputed')
+print(f"Silhouette Score dell'intero clustering: {silhouette_avg}")
 
     
 plt.show()
