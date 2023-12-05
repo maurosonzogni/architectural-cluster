@@ -1,6 +1,5 @@
 import os
 from nltk.tokenize import sent_tokenize, word_tokenize
-import warnings
 import nltk
 #nltk.download("punkt")
 import gensim
@@ -9,7 +8,7 @@ from nltk.corpus import stopwords
 import csv
 
 # Directory containing your text files
-directory_path = "***"
+directory_path = "./model2text"
 
 # List to store sentences from all files
 all_sentences = []
@@ -34,7 +33,7 @@ for filename in os.listdir(directory_path):
         # remove circumstances common words
         text = text.replace("this", "")
         # Se si rimuove instance alcuni modelli è come se non avessero parole, es 173 e 852
-        #text = text.replace("instance", "")
+        text = text.replace("instance", "")
         text = text.replace("impl", "")
         text = text.replace("imp", "")
         text = text.replace("\n", "")
@@ -56,7 +55,7 @@ for sentence in all_sentences:
     preprocessed_sentences.append(words)
 
 # Create Skip Gram model
-model = gensim.models.Word2Vec(preprocessed_sentences, min_count=1, vector_size=100, window=5, sg=1)
+model = Word2Vec(preprocessed_sentences, min_count=1, vector_size=100, window=10, sg=1)
 
 # Create a list to store similarity values
 similarity_values = []
@@ -65,22 +64,14 @@ similarity_values = []
 model_names = list(model_sentences.keys())
 
 for i, model_name1 in enumerate(model_names):
-    sentences1 = model_sentences[model_name1]
     for j, model_name2 in enumerate(model_names):
-        sentences2 = model_sentences[model_name2]
 
-        for sentence1 in sentences1:
-            for sentence2 in sentences2:
-                # Tokenize and preprocess the sentences
-                sentence1_words = [word.lower() for word in word_tokenize(sentence1) if word.isalnum() and word not in stop_words]
-                sentence2_words = [word.lower() for word in word_tokenize(sentence2) if word.isalnum() and word not in stop_words]
-
-                # Calculate the similarity between the two sentences
-                similarity = model.wv.n_similarity(sentence1_words, sentence2_words)
-                # 1-similarity to align with structual similarity
-                # 0.0 equals
-                # 1.0 completely different
-                similarity_values.append([model_name1, model_name2, 1 - similarity])
+        # Calculate the similarity between the two sentences
+        similarity = model.wv.n_similarity(preprocessed_sentences[i], preprocessed_sentences[j])
+        # 1-similarity to align with structual similarity
+        # 0.0 equals
+        # 1.0 completely different
+        similarity_values.append([model_name1, model_name2, 1 - round(similarity, 3)])
 
 # Save the similarity values to a CSV file
 csv_file = "similarity_values.csv"
