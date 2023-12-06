@@ -2,6 +2,7 @@ import json
 import os
 import re
 
+
 def load_config(config_file_path):
     """
     Load configuration settings from a JSON file.
@@ -28,7 +29,7 @@ def load_config(config_file_path):
     except json.JSONDecodeError:
         print(f"Error reading configuartion file: {config_file_path}")
         return None
-    
+
 
 def create_parent_folders(file_path):
     """

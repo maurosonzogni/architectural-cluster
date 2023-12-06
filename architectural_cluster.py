@@ -2,12 +2,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
-from scipy.spatial.distance import  squareform
+from scipy.spatial.distance import squareform
 
 from sklearn.metrics import silhouette_score
 
 from nltk import FreqDist
-from nltk.tokenize import  word_tokenize
+from nltk.tokenize import word_tokenize
 
 # local modules
 from utils_module import load_config, create_parent_folders, remove_numbers, remove_substrings
@@ -38,7 +38,8 @@ def infer_cluster_label(cluster_labels, number_of_topics_to_infer):
     cluster_text = cluster_text.replace("_", " ")
 
     # Remove common words specified in the configuration
-    cluster_text = remove_substrings(cluster_text, config['common_words_to_exclude'])
+    cluster_text = remove_substrings(
+        cluster_text, config['common_words_to_exclude'])
 
     # Tokenize the words
     words = word_tokenize(cluster_text)
@@ -55,7 +56,7 @@ def infer_cluster_label(cluster_labels, number_of_topics_to_infer):
     return cluster_label
 
 
-# Configuration file path 
+# Configuration file path
 config_file_path = 'configurations/architectural_cluster_config.json'
 
 # Load configuration
@@ -72,22 +73,22 @@ similarities = data.iloc[:, 1:].values  # Exclude the "model_name" column
 # This is because our matrix is already a distance matrix, but not in the required form
 condensed_distance_matrix = squareform(similarities)
 
-# The hierarchy.linkage function from the scipy.cluster module is used to compute a linkage matrix from a distance matrix or a condensed distance vector. 
+# The hierarchy.linkage function from the scipy.cluster module is used to compute a linkage matrix from a distance matrix or a condensed distance vector.
 # This linkage matrix is later used to construct the dendrogram, representing the hierarchical structure of the clustering.
 # Z = hierarchy.linkage(y, method='single', metric='euclidean')
 #   y: Distance matrix or condensed distance vector.
-#   method: Linkage method to use. It can be one of the following: 'single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'. 
+#   method: Linkage method to use. It can be one of the following: 'single', 'complete', 'average', 'weighted', 'centroid', 'median', 'ward'.
 #           These methods determine how the distance between clusters is calculated from distances of individual points within clusters.
-#   metric: Specifies the distance metric to use. It can be a string representing one of the distance metrics supported by scipy.spatial.distance.pdist. 
+#   metric: Specifies the distance metric to use. It can be a string representing one of the distance metrics supported by scipy.spatial.distance.pdist.
 #           The default metric is 'euclidean'.
-# The function returns the linkage matrix Z, which is an (n-1) x 4 matrix, where n is the number of observations. 
+# The function returns the linkage matrix Z, which is an (n-1) x 4 matrix, where n is the number of observations.
 # Each row of this matrix represents a fusion between two clusters and contains the following information:
 #   Index of the first cluster.
 #   Index of the second cluster.
 #   Distance between the first and second cluster.
 #   Number of observations in the resulting merged cluster.
 
-# The dendrogram is then constructed using this linkage matrix and 
+# The dendrogram is then constructed using this linkage matrix and
 # visualizes the sequence of cluster fusions during the hierarchical clustering process.
 
 # Calculate linkage matrix using average linkage method
@@ -139,30 +140,36 @@ silhouette_avg = silhouette_score(similarities, labels, metric='precomputed')
 
 # Create a DataFrame for metrics
 metrics_data = [[config['file_path'], silhouette_avg]]
-metrics_df = pd.DataFrame(metrics_data, columns=['file_path', 'silhouette_avg'])
+metrics_df = pd.DataFrame(metrics_data, columns=[
+                          'file_path', 'silhouette_avg'])
 
 # Initialize a list to store cluster information
 cluster_data = []
 
 # Populate the list with cluster information, including representative labels
 for cluster_num, cluster_labels in clusters.items():
-    cluster_label = infer_cluster_label(cluster_labels, config['numeber_of_topic_to_infer'])
+    cluster_label = infer_cluster_label(
+        cluster_labels, config['numeber_of_topic_to_infer'])
     cluster_data.append([cluster_label, cluster_num, cluster_labels])
 
 # Create a DataFrame for cluster information
-cluster_df = pd.DataFrame(cluster_data, columns=['cluster_topic', 'cluster_number', 'contained_models_name'])
+cluster_df = pd.DataFrame(cluster_data, columns=[
+                          'cluster_topic', 'cluster_number', 'contained_models_name'])
 
 # Create the folder structure if it doesn't exist
 create_parent_folders(config['clusters_output_xlsx'])
 
 # Write the silhouette score DataFrame to Excel
-metrics_df.to_excel(config['clusters_output_xlsx'], sheet_name=config['metrics_sheet_name'], index=False)
+metrics_df.to_excel(config['clusters_output_xlsx'],
+                    sheet_name=config['metrics_sheet_name'], index=False)
 
 # Append the cluster information DataFrame to the existing Excel file
 with pd.ExcelWriter(config['clusters_output_xlsx'], engine='openpyxl', mode='a') as writer:
-    cluster_df.to_excel(writer, sheet_name=config['cluster_sheet_name'], index=False)
+    cluster_df.to_excel(
+        writer, sheet_name=config['cluster_sheet_name'], index=False)
 
-print(f"\nThe results have been saved in the Excel file: {config['clusters_output_xlsx']}")
-  
+print(
+    f"\nThe results have been saved in the Excel file: {config['clusters_output_xlsx']}")
+
 # Display the dendrogram and silhouette analysis
 plt.show()

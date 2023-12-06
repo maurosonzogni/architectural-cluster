@@ -22,7 +22,8 @@ directory_path = config['model_text_file_path']
 for filename in os.listdir(directory_path):
     if filename.endswith(".txt"):
         file_path = os.path.join(directory_path, filename)
-        model_name = os.path.splitext(filename)[0]  # Extract model name from the filename without extension
+        # Extract model name from the filename without extension
+        model_name = os.path.splitext(filename)[0]
 
         # Read the file
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -53,11 +54,13 @@ stop_words = set(stopwords.words('english'))
 
 for sentence in all_sentences:
     words = word_tokenize(sentence)
-    words = [word.lower() for word in words if word.isalnum() and word not in stop_words]
+    words = [word.lower() for word in words if word.isalnum()
+             and word not in stop_words]
     preprocessed_sentences.append(words)
 
 # Create Skip Gram model
-model = Word2Vec(preprocessed_sentences, min_count=1, vector_size=100, window=10, sg=1)
+model = Word2Vec(preprocessed_sentences, min_count=1,
+                 vector_size=100, window=10, sg=1)
 
 # Create a list to store similarity values
 similarity_values = []
@@ -69,11 +72,13 @@ for i, model_name1 in enumerate(model_names):
     for j, model_name2 in enumerate(model_names):
 
         # Calculate the similarity between the two sentences
-        similarity = model.wv.n_similarity(preprocessed_sentences[i], preprocessed_sentences[j])
+        similarity = model.wv.n_similarity(
+            preprocessed_sentences[i], preprocessed_sentences[j])
         # 1-similarity to align with structual similarity
         # 0.0 equals
         # 1.0 completely different
-        similarity_values.append([model_name1, model_name2, 1 - round(similarity, 3)])
+        similarity_values.append(
+            [model_name1, model_name2, 1 - round(similarity, 3)])
 
 create_parent_folders(config['similarity_csv_file_path'])
 
@@ -90,4 +95,5 @@ with open(config['similarity_csv_file_path'], 'w', newline='') as file:
                 row[model_names.index(name2) + 1] = value
         writer.writerow(row)
 
-print(f"Similarity values have been saved to {config['similarity_csv_file_path']}")
+print(
+    f"Similarity values have been saved to {config['similarity_csv_file_path']}")
