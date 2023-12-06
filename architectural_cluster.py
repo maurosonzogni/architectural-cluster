@@ -11,79 +11,64 @@ from sklearn.metrics import silhouette_score
 from nltk import FreqDist
 from nltk.tokenize import  word_tokenize
 
-import re
+# local modules
+from utils_module import load_config, create_parent_folders, remove_numbers, remove_substrings
 
-def remove_numbers(sentence):
-    # Utilizza un'espressione regolare per eliminare i numeri e l'underscore attaccato
-    sentence_without_numbers = re.sub(r'\d+_', '', sentence)
-    return sentence_without_numbers
 
-def infer_cluster_label(cluster_labels):
-    
-    # Unire tutte le etichette del cluster in un unico testo
+def infer_cluster_label(cluster_labels, number_of_topics_to_infer):
+    """
+    Infer a representative label for a cluster based on the frequency of words in the cluster labels.
+
+    Args:
+        cluster_labels (list): A list of strings representing labels assigned to the cluster.
+        number_of_topics_to_infer (int): The number of topics to infer from the cluster labels.
+
+    Returns:
+        str: A representative label inferred from the cluster labels.
+
+    Example:
+        >>> infer_cluster_label(["data analysis", "data visualization", "data processing"], 2)
+        'data analysis visualization'
+    """
+    # Concatenate all cluster labels into a single text
     cluster_text = ' '.join(cluster_labels)
 
+    # Remove numeric digits from the cluster text
     cluster_text = remove_numbers(cluster_text)
+
     # Replace underscores with spaces
     cluster_text = cluster_text.replace("_", " ")
-    
-    
-    
-    cluster_text = cluster_text.lower()
 
-    # remove circumstances common words
-    cluster_text = cluster_text.replace("this", "")
-    # Se si rimuove instance alcuni modelli è come se non avessero parole, es 173 e 852
-    cluster_text = cluster_text.replace("instance", "")
-    cluster_text = cluster_text.replace("impl", "")
-    cluster_text = cluster_text.replace("imp", "")
-    cluster_text = cluster_text.replace("sensor", "")
-    cluster_text = cluster_text.replace("system", "")
-    cluster_text = cluster_text.replace("subsystem", "")
-    # single e dual?
-    cluster_text = cluster_text.replace("single", "")
-    cluster_text = cluster_text.replace("dual", "")
-    # integration e standard
-    cluster_text = cluster_text.replace("integration", "")
-    cluster_text = cluster_text.replace("standard", "")
-    # with hardware sub devices
-    cluster_text = cluster_text.replace("with", "")
-    cluster_text = cluster_text.replace("sub", "")
-    cluster_text = cluster_text.replace("functional", "")
-    cluster_text = cluster_text.replace("devices", "")
-    cluster_text = cluster_text.replace("hardware", "")
+    # Remove common words specified in the configuration
+    cluster_text = remove_substrings(cluster_text, config['common_words_to_exclude'])
 
-
-    #
-    cluster_text = cluster_text.replace("\n", "")
-    
-
-    # Tokenizzazione delle parole
+    # Tokenize the words
     words = word_tokenize(cluster_text)
 
-    # Calcolo della frequenza delle parole
+    # Calculate word frequency
     freq_dist = FreqDist(words)
 
-    # Estrazione delle parole chiave (ad esempio, le prime 3 parole più comuni)
-    keywords = freq_dist.most_common(2)
+    # Extract keywords (e.g., the top N most common words)
+    keywords = freq_dist.most_common(number_of_topics_to_infer)
 
-    # Creazione di un'etichetta rappresentativa utilizzando le parole chiave
-    cluster_label = ' '.join(words for words, freq_dist in keywords)
+    # Create a representative label using the keywords
+    cluster_label = ' '.join(word for word, freq in keywords)
 
     return cluster_label
 
-# File path
-file_path= './report/multiple_level/OR_single.match.structural.similarity.rule_06.csv'
-#file_path= 'similarity_values.csv'
+
+# Configuration file path 
+config_file_path = 'configurations/architectural_cluster_config.json'
+
+# Load configuration
+config = load_config(config_file_path)
 
 # Load data from the CSV file
-data = pd.read_csv(file_path)
+data = pd.read_csv(config['file_path'])
 
 # Extract the similarity similarities from the dataframe
 similarities = data.iloc[1:, :].values  # Exclude the "model_name" column
 similarities = data.iloc[:, 1:].values  # Exclude the "model_name" column
-
-print(similarities)
 
 # Converti la matrice delle distanze in una matrice di distanza condensata
 # questo perchè la nostra è già una matrice di distanza, ma non nella forma che serve
@@ -124,9 +109,7 @@ dn = dendrogram(Z, labels=data['model_name'].values)
 # 4- soglia 0.8, valore taglio 0.4 (0.5989859109716965)
 # Nota: i valori riportati sopra massimizzano la silhouette media
 #########################################################
-cut_height = 0.4  # Puoi regolare questo valore in base alle tue esigenze
-# Assegna i cluster in base all'altezza di taglio
-labels = fcluster(Z, t=cut_height, criterion='distance')
+labels = fcluster(Z, t=config['cluster_cut_height'], criterion='distance')
 
 # Creare un dizionario per memorizzare le etichette per ciascun cluster
 clusters = {}
@@ -138,45 +121,35 @@ for i, label in enumerate(labels):
     else:
         clusters[label].append(data['model_name'].values[i])
 
-# Stampa le etichette per ciascun cluster
-#for cluster_num, cluster_labels in clusters.items():
-   # cluster_label = infer_cluster_label(cluster_labels)
-    #print(f"Cluster {cluster_label} ({cluster_num}): {cluster_labels}")
-# Creazione di un DataFrame
-df_data = []
-
-for cluster_num, cluster_labels in clusters.items():
-    cluster_label = infer_cluster_label(cluster_labels)
-    df_data.append([cluster_label, cluster_num, cluster_labels])
-
-# Definizione delle colonne
-columns = ['cluster_topic', 'cluster_number', 'contained_models_name']
-
-# Creazione del DataFrame
-df = pd.DataFrame(df_data, columns=columns)
-
-# Salvataggio del DataFrame in un file Excel
-excel_file_path = 'output_clusters.xlsx'
-df.to_excel(excel_file_path, index=False)
-
-# Stampa del DataFrame
-print(df)
-
-print(f"\nI risultati sono stati salvati nel file Excel: {excel_file_path}")
 
 # Calcola l'indice di silhouette per tutti i campioni insieme
 # Nota: se si vuole calcolare la silhouette dei singoli cluster è necessario che il cluster contenga almeno 2 label
 silhouette_avg = silhouette_score(similarities, labels, metric='precomputed')
-print(f"Silhouette Score dell'intero clustering: {silhouette_avg}")
+# Creazione di un DataFrame
+metrics_data = [[config['file_path'], silhouette_avg]]
 
-    
+# Creazione del DataFrame
+metrics_df = pd.DataFrame(metrics_data, columns=['file_path','silhouette_avg'])
+
+# Creazione di un DataFrame
+cluster_data = []
+
+for cluster_num, cluster_labels in clusters.items():
+    cluster_label = infer_cluster_label(cluster_labels, config['numeber_of_topic_to_infer'])
+    cluster_data.append([cluster_label, cluster_num, cluster_labels])
+
+# Creazione del DataFrame
+cluster_df = pd.DataFrame(cluster_data, columns=['cluster_topic', 'cluster_number', 'contained_models_name'])
+
+# Create the folder structure if it doesn't exist
+create_parent_folders(config['clusters_output_xlsx'])
+
+metrics_df.to_excel(config['clusters_output_xlsx'], sheet_name=config['metrics_sheet_name'], index=False)
+
+with pd.ExcelWriter(config['clusters_output_xlsx'], engine='openpyxl', mode='a') as writer:
+    cluster_df.to_excel(writer, sheet_name=config['cluster_sheet_name'], index=False)
+
+
+print(f"\nI risultati sono stati salvati nel file Excel: {config['clusters_output_xlsx']}")
+  
 plt.show()
-
-
-
-
-
-
-
-
-

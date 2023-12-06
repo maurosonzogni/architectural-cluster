@@ -1,0 +1,27 @@
+{
+    "file_path": "matrices/w2v_similiarity.csv",
+    "clusters_output_xlsx": "output/report.xlsx",
+    "cluster_sheet_name": "cluster",
+    "metrics_sheet_name": "metrics",
+    "cluster_cut_height": 0.4,
+    "numeber_of_topic_to_infer": 2,
+    "common_words_to_exclude": [
+        "this",
+        "instance",
+        "impl",
+        "imp",
+        "sensor",
+        "system",
+        "subsystem",
+        "single",
+        "dual",
+        "integration",
+        "standard",
+        "with",
+        "sub",
+        "functional",
+        "devices",
+        "hardware",
+        "\n"
+    ]
+}

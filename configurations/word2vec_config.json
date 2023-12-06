@@ -1,0 +1,4 @@
+{
+    "model_text_file_path":"model2text",
+    "similarity_csv_file_path": "matrices/w2v_similiarity.csv"
+}

@@ -1,14 +1,15 @@
 import os
 from nltk.tokenize import sent_tokenize, word_tokenize
-import nltk
-#nltk.download("punkt")
-import gensim
 from gensim.models import Word2Vec
 from nltk.corpus import stopwords
 import csv
 
-# Directory containing your text files
-directory_path = "./model2text"
+# local modules
+from utils_module import load_config, create_parent_folders
+
+config_file_path = 'configurations/word2vec_config.json'
+
+config = load_config(config_file_path)
 
 # List to store sentences from all files
 all_sentences = []
@@ -16,11 +17,12 @@ all_sentences = []
 # Dictionary to store model names and sentences
 model_sentences = {}
 
+directory_path = config['model_text_file_path']
 # Iterate through each file in the directory
 for filename in os.listdir(directory_path):
     if filename.endswith(".txt"):
         file_path = os.path.join(directory_path, filename)
-        model_name = filename.split('.')[0]  # Extract model name from the filename
+        model_name = os.path.splitext(filename)[0]  # Extract model name from the filename without extension
 
         # Read the file
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -30,7 +32,7 @@ for filename in os.listdir(directory_path):
         text = text.replace("_", " ")
         text = text.lower()
 
-        # remove circumstances common words
+        # TODO valutare se rimuovere le stesse di architectural_cluster_config o farne uno custom differente
         text = text.replace("this", "")
         # Se si rimuove instance alcuni modelli è come se non avessero parole, es 173 e 852
         text = text.replace("instance", "")
@@ -73,9 +75,10 @@ for i, model_name1 in enumerate(model_names):
         # 1.0 completely different
         similarity_values.append([model_name1, model_name2, 1 - round(similarity, 3)])
 
+create_parent_folders(config['similarity_csv_file_path'])
+
 # Save the similarity values to a CSV file
-csv_file = "similarity_values.csv"
-with open(csv_file, 'w', newline='') as file:
+with open(config['similarity_csv_file_path'], 'w', newline='') as file:
     writer = csv.writer(file)
     header = ["model_name"] + model_names
     writer.writerow(header)
@@ -87,4 +90,4 @@ with open(csv_file, 'w', newline='') as file:
                 row[model_names.index(name2) + 1] = value
         writer.writerow(row)
 
-print(f"Similarity values have been saved to {csv_file}")
+print(f"Similarity values have been saved to {config['similarity_csv_file_path']}")
