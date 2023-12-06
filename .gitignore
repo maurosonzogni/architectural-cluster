@@ -1,4 +1,5 @@
 /__pycache__/
+/.vscode/
 /matrices/
 /output/
 /model2text/
