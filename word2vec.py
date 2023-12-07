@@ -34,18 +34,22 @@ for filename in os.listdir(directory_path):
         text = text.lower()
 
         # TODO valutare se rimuovere le stesse di architectural_cluster_config o farne uno custom differente
+        # potrebbe essere sensato provare a separare le parlole quando si trova una maiuscola?
         text = text.replace("this", "")
         # Se si rimuove instance alcuni modelli è come se non avessero parole, es 173 e 852
         text = text.replace("instance", "")
         text = text.replace("impl", "")
         text = text.replace("imp", "")
         text = text.replace("\n", "")
+        text = text.replace("->", " ")
+        text = text.replace(".", " ")
 
         # Tokenize the text into sentences
         sentences = sent_tokenize(text)
         all_sentences.extend(sentences)
 
         # Store the sentences in the dictionary with the model name
+
         model_sentences[model_name] = sentences
 
 # Tokenize and preprocess the sentences
@@ -54,8 +58,10 @@ stop_words = set(stopwords.words('english'))
 
 for sentence in all_sentences:
     words = word_tokenize(sentence)
+    # word not in stop_words this exclude some single char es "i", "t"
     words = [word.lower() for word in words if word.isalnum()
              and word not in stop_words]
+
     preprocessed_sentences.append(words)
 
 # Create Skip Gram model
@@ -71,14 +77,23 @@ model_names = list(model_sentences.keys())
 for i, model_name1 in enumerate(model_names):
     for j, model_name2 in enumerate(model_names):
 
-        # Calculate the similarity between the two sentences
-        similarity = model.wv.n_similarity(
-            preprocessed_sentences[i], preprocessed_sentences[j])
+        if not preprocessed_sentences[i] or not preprocessed_sentences[j]:
+            similarity = 0.0
+            if not preprocessed_sentences[i] and not preprocessed_sentences[j]:
+                similarity = 1.0
+        else:
+            # Calculate the similarity between the two sentences
+            similarity = model.wv.n_similarity(
+                preprocessed_sentences[i], preprocessed_sentences[j])
+
+        # model.wv.n_similarity return a value +1 and -1, so we need to normalize it
+        normalized_similaity = (similarity + 1) / 2
+
         # 1-similarity to align with structual similarity
         # 0.0 equals
         # 1.0 completely different
         similarity_values.append(
-            [model_name1, model_name2, 1 - round(similarity, 3)])
+            [model_name1, model_name2, (1 - round(normalized_similaity, 3))])
 
 create_parent_folders(config['similarity_csv_file_path'])
 
