@@ -139,9 +139,9 @@ for i, label in enumerate(labels):
 silhouette_avg = silhouette_score(similarities, labels, metric='precomputed')
 
 # Create a DataFrame for metrics
-metrics_data = [[config['file_path'], silhouette_avg]]
+metrics_data = [[config['file_path'],config['cluster_cut_height'], silhouette_avg, config['numeber_of_topic_to_infer']]]
 metrics_df = pd.DataFrame(metrics_data, columns=[
-                          'file_path', 'silhouette_avg'])
+                          'file_path','cluster_cut_height', 'silhouette_avg', 'numeber_of_topic_to_infer'])
 
 # Initialize a list to store cluster information
 cluster_data = []
