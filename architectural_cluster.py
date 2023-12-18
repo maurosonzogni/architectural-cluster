@@ -9,8 +9,11 @@ from sklearn.metrics import silhouette_score
 from nltk import FreqDist
 from nltk.tokenize import word_tokenize
 
+from openpyxl.utils import get_column_letter
+
+
 # local modules
-from utils_module import load_config, create_parent_folders, remove_numbers, remove_substrings
+from utils_module import generate_link, load_config, create_parent_folders, remove_numbers, remove_substrings
 
 
 def infer_cluster_label(cluster_labels, number_of_topics_to_infer):
@@ -36,6 +39,7 @@ def infer_cluster_label(cluster_labels, number_of_topics_to_infer):
 
     # Replace underscores with spaces
     cluster_text = cluster_text.replace("_", " ")
+    cluster_text = cluster_text.replace("-", " ")
 
     # Remove common words specified in the configuration
     cluster_text = remove_substrings(
@@ -151,10 +155,19 @@ for cluster_num, cluster_labels in clusters.items():
     cluster_label = infer_cluster_label(
         cluster_labels, config['numeber_of_topic_to_infer'])
     cluster_data.append([cluster_label, cluster_num, cluster_labels])
-
+    
 # Create a DataFrame for cluster information
 cluster_df = pd.DataFrame(cluster_data, columns=[
                           'cluster_topic', 'cluster_number', 'contained_models_name'])
+
+# Trova il massimo numero di colonne tra tutte le liste
+max_num_colonne = max(len(labels) for labels in clusters.values())
+
+# Costruisci le colonne separatamente
+for i in range(max_num_colonne):
+    colonna_label = f'model_{i+1}'
+    cluster_df[colonna_label] = [generate_link(labels[i]) if i < len(labels) else '' for labels in clusters.values()]
+
 
 # Create the folder structure if it doesn't exist
 create_parent_folders(config['clusters_output_xlsx'])
@@ -167,6 +180,20 @@ metrics_df.to_excel(config['clusters_output_xlsx'],
 with pd.ExcelWriter(config['clusters_output_xlsx'], engine='openpyxl', mode='a') as writer:
     cluster_df.to_excel(
         writer, sheet_name=config['cluster_sheet_name'], index=False)
+    ws = writer.sheets[config['cluster_sheet_name']]
+    # Imposta la larghezza automatica delle colonne
+    for col_num, _ in enumerate(cluster_df.columns, 1):
+        col_letter = get_column_letter(col_num)
+        max_length = 0
+        for row in ws[f'{col_letter}']:
+            try:
+                if len(str(row.value)) > max_length:
+                    max_length = len(row.value)
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[col_letter].width = adjusted_width
+
 
 print(
     f"\nThe results have been saved in the Excel file: {config['clusters_output_xlsx']}")
