@@ -10,6 +10,7 @@ from nltk import FreqDist
 from nltk.tokenize import word_tokenize
 
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, NamedStyle
 
 
 # local modules
@@ -176,13 +177,31 @@ create_parent_folders(config['clusters_output_xlsx'])
 metrics_df.to_excel(config['clusters_output_xlsx'],
                     sheet_name=config['metrics_sheet_name'], index=False)
 
+# Crea uno stile per l'attributo hyperlink
+hyperlink_style = NamedStyle(name='hyperlink', font=Font(underline='single', color='0563C1'))
 # Append the cluster information DataFrame to the existing Excel file
 with pd.ExcelWriter(config['clusters_output_xlsx'], engine='openpyxl', mode='a') as writer:
     cluster_df.to_excel(
         writer, sheet_name=config['cluster_sheet_name'], index=False)
     ws = writer.sheets[config['cluster_sheet_name']]
+
+
+    # Imposta le colonne da trasformare in link (inizia dalla quarta colonna)
+    colonne_da_trasformare = cluster_df.columns[3:]
+    # Itera attraverso le colonne e le celle per aggiungere l'attributo hyperlink
+    
+    # Itera attraverso le colonne e le celle per aggiungere l'attributo hyperlink
+    for colonna in colonne_da_trasformare:
+        indice_colonna = cluster_df.columns.get_loc(colonna) + 1
+        for col in ws.iter_cols(min_col=indice_colonna, max_col=indice_colonna, min_row=2):
+            for indice, cella in enumerate(col, start=2):
+                cella.style = hyperlink_style
+                valore_cella = cella.value
+                valore_ipo = None if valore_cella is None else f'=HYPERLINK("{valore_cella}", "{valore_cella}")'
+                ws[f'{get_column_letter(indice_colonna)}{indice}'] = valore_ipo
+
     # Imposta la larghezza automatica delle colonne
-    for col_num, _ in enumerate(cluster_df.columns, 1):
+    for col_num, _  in enumerate(cluster_df.columns, 1):
         col_letter = get_column_letter(col_num)
         max_length = 0
         for row in ws[f'{col_letter}']:

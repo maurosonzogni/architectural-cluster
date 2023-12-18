@@ -1,9 +1,9 @@
 {
-    "file_path": "matrices/w2v_similiarity.csv",
-    "clusters_output_xlsx": "output/report.xlsx",
+    "file_path": "matrices/testing_name.csv",
+    "clusters_output_xlsx": "output/report_selected.xlsx",
     "cluster_sheet_name": "cluster",
     "metrics_sheet_name": "metrics",
-    "cluster_cut_height": 0.1,
+    "cluster_cut_height": 0.7,
     "numeber_of_topic_to_infer": 2,
     "common_words_to_exclude": [
         "this",
@@ -12,6 +12,7 @@
         "imp",
         "sensor",
         "system",
+        "syst",
         "sys",
         "subsystem",
         "single",
@@ -23,6 +24,7 @@
         "functional",
         "devices",
         "hardware",
-        "\n"
+        "\n",
+        ".aaxl"
     ]
 }
