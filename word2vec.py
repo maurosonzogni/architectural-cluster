@@ -5,7 +5,7 @@ from nltk.corpus import stopwords
 import csv
 
 # local modules
-from utils_module import load_config, create_parent_folders
+from utils_module import load_config, create_parent_folders, remove_substrings
 
 config_file_path = 'configurations/word2vec_config.json'
 
@@ -31,26 +31,19 @@ for filename in os.listdir(directory_path):
 
         # Replace underscores with spaces
         text = text.replace("_", " ")
-        text = text.lower()
-
-        # TODO valutare se rimuovere le stesse di architectural_cluster_config o farne uno custom differente
-        # potrebbe essere sensato provare a separare le parlole quando si trova una maiuscola?
-        text = text.replace("this", "")
-        # Se si rimuove instance alcuni modelli è come se non avessero parole, es 173 e 852
-        text = text.replace("instance", "")
-        text = text.replace("impl", "")
-        text = text.replace("imp", "")
-        text = text.replace("\n", "")
         text = text.replace("->", " ")
+        #text = text.replace("-", " ")
         text = text.replace(".", " ")
+
+        text = remove_substrings(text, config['common_words_to_exclude'])
 
         # Tokenize the text into sentences
         sentences = sent_tokenize(text)
-        all_sentences.extend(sentences)
-
-        # Store the sentences in the dictionary with the model name
-
-        model_sentences[model_name] = sentences
+        if (len(sentences)> 0):
+            all_sentences.extend(sentences)
+            # Store the sentences in the dictionary with the model name
+            model_sentences[model_name] = sentences
+        
 
 # Tokenize and preprocess the sentences
 preprocessed_sentences = []
@@ -65,6 +58,15 @@ for sentence in all_sentences:
     preprocessed_sentences.append(words)
 
 # Create Skip Gram model
+# TODO Valutare se skipgram o meno, e valutare di usare metodi diversi ("chiedere al Prof se ha consigli")
+# Skip Gram (sg=1):
+#Prevede la predizione del contesto (parole circostanti) dato un termine di input.
+#Meglio in situazioni in cui hai dataset di grandi dimensioni e desideri catturare dettagliate relazioni semantiche tra le parole.
+#Più lento durante l'addestramento rispetto a CBOW.
+#Continuous Bag of Words (CBOW) (sg=0):
+#Prevede la predizione del termine di destinazione dato il contesto circostante.
+#Solitamente più rapido durante l'addestramento rispetto a Skip Gram.
+#Può funzionare bene con dataset più piccoli e in situazioni in cui le informazioni contestuali sono più importanti delle relazioni semantiche dettagliate.
 model = Word2Vec(preprocessed_sentences, min_count=1,
                  vector_size=100, window=10, sg=1)
 
@@ -78,7 +80,7 @@ for i, model_name1 in enumerate(model_names):
     for j, model_name2 in enumerate(model_names):
 
         if not preprocessed_sentences[i] or not preprocessed_sentences[j]:
-            similarity = 0.0
+            similarity = - 1.0
             if not preprocessed_sentences[i] and not preprocessed_sentences[j]:
                 similarity = 1.0
         else:

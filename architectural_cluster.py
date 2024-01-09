@@ -1,4 +1,6 @@
+import numpy as np
 import pandas as pd
+import time
 import matplotlib.pyplot as plt
 
 from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
@@ -12,53 +14,95 @@ from nltk.tokenize import word_tokenize
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, NamedStyle
 
-
 # local modules
 from utils_module import generate_link, load_config, create_parent_folders, remove_numbers, remove_substrings
 
+from bard_module import infer_topic_with_bard
+
+
 
 def infer_cluster_label(cluster_labels, number_of_topics_to_infer):
-    """
-    Infer a representative label for a cluster based on the frequency of words in the cluster labels.
-
-    Args:
-        cluster_labels (list): A list of strings representing labels assigned to the cluster.
-        number_of_topics_to_infer (int): The number of topics to infer from the cluster labels.
-
-    Returns:
-        str: A representative label inferred from the cluster labels.
-
-    Example:
-        >>> infer_cluster_label(["data analysis", "data visualization", "data processing"], 2)
-        'data analysis visualization'
-    """
-    # Concatenate all cluster labels into a single text
     cluster_text = ' '.join(cluster_labels)
-
-    # Remove numeric digits from the cluster text
     cluster_text = remove_numbers(cluster_text)
-
-    # Replace underscores with spaces
-    cluster_text = cluster_text.replace("_", " ")
-    cluster_text = cluster_text.replace("-", " ")
-
-    # Remove common words specified in the configuration
-    cluster_text = remove_substrings(
-        cluster_text, config['common_words_to_exclude'])
-
-    # Tokenize the words
+    cluster_text = cluster_text.replace("_", " ").replace("->", " ").replace("-", " ").replace(".", " ")
+    cluster_text = remove_substrings(cluster_text, config['common_words_to_exclude'])
     words = word_tokenize(cluster_text)
-
-    # Calculate word frequency
     freq_dist = FreqDist(words)
-
-    # Extract keywords (e.g., the top N most common words)
     keywords = freq_dist.most_common(number_of_topics_to_infer)
+    return [word for word, freq in keywords]  # Restituisce una lista di parole chiave
 
-    # Create a representative label using the keywords
-    cluster_label = ' '.join(word for word, freq in keywords)
 
-    return cluster_label
+def build_cluster_contents(linkage_matrix, leaf_labels):
+    """
+    Build a dictionary containing the contents of each cluster at each stage of the linkage.
+
+    :param linkage_matrix: The linkage matrix from hierarchical clustering
+    :param leaf_labels: A list or array of leaf labels (names)
+    :return: A dictionary where keys are cluster indices and values are sets of leaf names in that cluster
+    """
+    # Inizializza il dizionario con ogni foglia come un cluster separato
+    cluster_contents = {i: {name} for i, name in enumerate(leaf_labels)}
+    n = len(leaf_labels)
+
+    # Itera attraverso ogni fusione nella matrice di linkage
+    for i, row in enumerate(linkage_matrix):
+        cluster1, cluster2 = int(row[0]), int(row[1])
+        new_cluster = n + i
+        # Combina i contenuti dei due cluster uniti
+        cluster_contents[new_cluster] = cluster_contents[cluster1] | cluster_contents[cluster2]
+
+    return cluster_contents
+
+# Ri-eseguire il codice con la definizione della funzione poiché lo stato dell'esecuzione è stato reimpostato.
+
+def build_cluster_information(cluster_contents):
+    """
+    Build a list of dictionaries with cluster number, inferred topics, and models.
+
+    :param cluster_contents: A dictionary with sets of model names for each cluster index
+    :param number_of_topics_to_infer: The number of topics to use for inferring labels
+    :return: A list of dictionaries, each representing a cluster with its number, inferred topics, and models
+    """
+    cluster_info = []
+    if config['method_to_infer_topics'] == 'NATIVE':
+        for index, models in cluster_contents.items():
+            topics = infer_cluster_label(models, 2)
+            cluster_info.append({
+                "number_of_cluster": index,
+                "topic": topics,
+                "models": list(models)
+            })
+    else:
+        for index, models in cluster_contents.items():
+            topics = infer_topic_with_bard(models,"","")
+            cluster_info.append({
+                "number_of_cluster": index,
+                "topic": topics,
+                "models": list(models)
+            })
+        
+    return cluster_info
+
+
+def build_model_to_topics_output(cluster_info_list):
+    """
+    Build a dictionary in the specified format: {model: "nomemodello", topics: ["topic1", "topic2", ...]}.
+
+    :param cluster_info_list: A list of dictionaries, each representing a cluster with its number, inferred topics, and models
+    :return: A list of dictionaries in the specified format
+    """
+    model_to_topics = {}
+    for cluster in cluster_info_list:
+        for model in cluster["models"]:
+            if model not in model_to_topics:
+                model_to_topics[model] = set()
+            model_to_topics[model].update(cluster["topic"])
+
+    # Convert the dictionary to the desired format
+    formatted_output = [{"model": model, "topics": list(topics)} for model, topics in model_to_topics.items()]
+
+    return formatted_output
+
 
 
 # Configuration file path
@@ -114,6 +158,28 @@ plt.subplots_adjust(left=0.08, right=0.950, bottom=0.435, top=0.935)
 # Create a dendrogram with hierarchical clustering labels
 dn = dendrogram(Z, labels=data['model_name'].values)
 
+# Ora puoi usare `cluster_contents` per vedere quali modelli appartengono a ciascun cluster a ogni livello.
+cluster_contents = build_cluster_contents(Z, data['model_name'].values)
+
+cluster_info_list = build_cluster_information(cluster_contents)
+
+# Utilizzo:
+# Assumi che `cluster_info_list` sia già definito come discusso in precedenza
+model_to_topics_map = build_model_to_topics_output(cluster_info_list)
+
+# Estrarre le coordinate dei nodi interni
+icoords = dn['icoord']
+dcoords = dn['dcoord']
+
+# Etichettare i nodi interni
+for i, (x, y) in enumerate(zip(icoords, dcoords)):
+    x_mean = np.mean(x)
+    y_max = max(y)
+     # Controllare se il nodo è interno (non una foglia)
+    if len(set(x)) > 1:  # Un nodo interno ha più di un valore unico in 'x'
+        plt.text(x_mean, y_max, f'Nodo {i}', ha='center', va='bottom')
+
+
 
 # Scegli un'altezza di taglio per formare i cluster
 # 0.9, corrisponde ad avere un unico cluster
@@ -128,6 +194,7 @@ dn = dendrogram(Z, labels=data['model_name'].values)
 #########################################################
 # Assign cluster labels using hierarchical clustering
 labels = fcluster(Z, t=config['cluster_cut_height'], criterion='distance')
+
 
 # Initialize a dictionary to store models assigned to each cluster
 clusters = {}
@@ -151,11 +218,18 @@ metrics_df = pd.DataFrame(metrics_data, columns=[
 # Initialize a list to store cluster information
 cluster_data = []
 
-# Populate the list with cluster information, including representative labels
-for cluster_num, cluster_labels in clusters.items():
-    cluster_label = infer_cluster_label(
-        cluster_labels, config['numeber_of_topic_to_infer'])
-    cluster_data.append([cluster_label, cluster_num, cluster_labels])
+
+if config['method_to_infer_topics'] == 'NATIVE':
+    # Populate the list with cluster information, including representative labels
+    for cluster_num, cluster_labels in clusters.items():
+        cluster_label = infer_cluster_label(cluster_labels, config['numeber_of_topic_to_infer'])
+        cluster_data.append([cluster_label, cluster_num, cluster_labels])
+else:
+    # Populate the list with cluster information, including representative labels
+    for cluster_num, cluster_labels in clusters.items():
+        cluster_label = infer_topic_with_bard(cluster_labels,"","")
+        cluster_data.append([cluster_label, cluster_num, cluster_labels])
+    
     
 # Create a DataFrame for cluster information
 cluster_df = pd.DataFrame(cluster_data, columns=[
@@ -177,12 +251,24 @@ create_parent_folders(config['clusters_output_xlsx'])
 metrics_df.to_excel(config['clusters_output_xlsx'],
                     sheet_name=config['metrics_sheet_name'], index=False)
 
+  # Convertendo la lista di dizionari in un DataFrame
+model_cluster_chain_df = pd.DataFrame(model_to_topics_map)
+
+    # Convertendo la colonna 'topics' in stringa per una migliore visualizzazione in Excel
+model_cluster_chain_df['topics'] = model_cluster_chain_df['topics'].apply(lambda x: ', '.join(x))
+
+    
 # Crea uno stile per l'attributo hyperlink
 hyperlink_style = NamedStyle(name='hyperlink', font=Font(underline='single', color='0563C1'))
 # Append the cluster information DataFrame to the existing Excel file
 with pd.ExcelWriter(config['clusters_output_xlsx'], engine='openpyxl', mode='a') as writer:
+
+    model_cluster_chain_df.to_excel(
+        writer, sheet_name=config['model_cluster_chain_sheet_name'], index=False)
+    
     cluster_df.to_excel(
         writer, sheet_name=config['cluster_sheet_name'], index=False)
+    
     ws = writer.sheets[config['cluster_sheet_name']]
 
 
