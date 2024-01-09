@@ -2,7 +2,6 @@ import json
 import os
 import re
 
-
 def load_config(config_file_path):
     """
     Load configuration settings from a JSON file.
@@ -80,3 +79,40 @@ def remove_substrings(input_string, substrings_to_remove):
     for substring in substrings_to_remove:
         input_string_lower = input_string_lower.replace(substring.lower(), '')
     return input_string_lower
+
+
+def generate_link(model_name):
+    return f'https://github.com/maurosonzogni/model_aaxl2/blob/main/xmi/{model_name}'
+
+
+
+def extract_json_from_text(text):
+    """
+    Extracts a JSON object from a given text using regular expressions.
+    The function searches for a string that looks like a JSON object (starts with '{' and ends with '}')
+    and tries to convert it into a JSON object.
+
+    Args:
+    text (str): The text from which to extract the JSON object.
+
+    Returns:
+    dict: The extracted JSON object, or None if no valid JSON object is found.
+    """
+    # Using regular expressions to find a string that looks like a JSON object
+    # This pattern looks for a string that starts with '{' and ends with '}'
+    pattern = r'\{.*?\}'
+    match = re.search(pattern, text, re.DOTALL)
+
+    if match:
+        json_str = match.group(0)
+        try:
+            # Converts the extracted string into a JSON object
+            json_obj = json.loads(json_str)
+            return json_obj
+        except json.JSONDecodeError:
+            # Handles the exception in case the string is not a valid JSON
+            print("Unable to decode the JSON.")
+            return None
+    else:
+        print("No JSON found in the text.")
+        return None
