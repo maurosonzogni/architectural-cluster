@@ -1,9 +1,8 @@
 import os
+import time
 from bardapi import BardCookies
 from dotenv import load_dotenv
-from utils_module import extract_json_from_text
-
-import time
+from utils_module import extract_json_from_text, load_config, remove_numbers, remove_substrings
 
 
 def infer_topic_with_bard(text, question, answer_format):
@@ -24,6 +23,12 @@ def infer_topic_with_bard(text, question, answer_format):
     # Load environment variables
     load_dotenv()
 
+    # Configuration file path
+    config_file_path = 'configurations/architectural_cluster_config.json'
+
+    # Load configuration
+    config = load_config(config_file_path)
+
     # Setup cookies for Bard API authentication
     cookies = {
         "__Secure-1PSID": os.environ['Secure_1PSID'],
@@ -43,13 +48,16 @@ def infer_topic_with_bard(text, question, answer_format):
     if not isinstance(text, str):
         text = ' '.join(text)
 
+    text = remove_numbers(text)
+    text = remove_substrings(text, config['common_words_to_exclude'])
+
     # Construct the complete question for the API
     complete_question = question + text + answer_format
     time.sleep(4)
     # Get the answer from Bard API
     answer_content = bard.get_answer(complete_question)
     
-    time.sleep(4)
+    time.sleep(5)
     print(answer_content)
 
     try:
