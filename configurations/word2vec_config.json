@@ -1,9 +1,10 @@
 {
-    "model_text_file_path":"model2text_A",
-    "similarity_csv_file_path": "matrices/A_v2_text.csv",
+    "model_text_file_path": "model2text_A",
+    "similarity_csv_file_path": "matrices/A_text.csv",
     "common_words_to_exclude": [
         "this",
         "instance",
+        "simple",
         "impl",
         "imp",
         "sensor",
@@ -16,6 +17,7 @@
         "integration",
         "standard",
         "with",
+        "subcompo",
         "sub",
         "functional",
         "devices",
@@ -27,10 +29,16 @@
         "examples",
         "example",
         "package",
+        "architecture",
         "use",
         "\n",
+        "aadlib",
+        "kaadl",
         "aaxl",
         "aadl",
+        "ksu",
+        "qa",
+        "v2",
         " a ",
         " b ",
         " c ",
@@ -58,5 +66,4 @@
         " w ",
         " x "
     ]
-
 }

@@ -1,7 +1,7 @@
 {
-    "file_path_1":"output/A_text_native.xlsx",
-    "file_path_2":"output/B_native.xlsx",
+    "file_path_1":"output/selected_project/D_native.xlsx",
+    "file_path_2":"output/selected_project/E_native.xlsx",
     "model_cluster_chain_sheet_name": "model_cluster_chain",
     "consider_order": false,
-    "output_file": "output/A_text_native_and_B_native_comparison.xlsx"
+    "output_file": "output/selected_project/validation/D_native_and_E_native_comparison.xlsx"
 }

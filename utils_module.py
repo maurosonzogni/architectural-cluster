@@ -80,6 +80,39 @@ def remove_substrings(input_string, substrings_to_remove):
         input_string_lower = input_string_lower.replace(substring.lower(), '')
     return input_string_lower
 
+def remove_duplicate_words(input_string):
+    """
+    Remove duplicate words from a given string.
+
+    This function takes an input string, splits it into individual words, and then iterates
+    through these words. It keeps track of unique words using a set and constructs a new
+    string with only the unique words, preserving their original order.
+
+    :param input_string: The string from which duplicate words need to be removed.
+    :return: A string with duplicate words removed, preserving the order of words.
+    """
+
+    # Split the string into individual words
+    words = input_string.split()
+
+    # Initialize a set to keep track of unique words
+    unique_words = set()
+
+    # List to store the result with duplicates removed
+    result = []
+
+    # Iterate over each word in the original string
+    for word in words:
+        # Check if the word is already in the set of unique words
+        if word not in unique_words:
+            # Add the word to the set and the result list
+            unique_words.add(word)
+            result.append(word)
+
+    # Join the words in the result list back into a string and return
+    return ' '.join(result)
+
+
 
 def generate_link(model_name):
     return f'https://github.com/maurosonzogni/model_aaxl2/blob/main/xmi/{model_name}'
@@ -104,7 +137,7 @@ def extract_json_from_text(text):
     match = re.search(pattern, text, re.DOTALL)
 
     if match:
-        json_str = match.group(0)
+        json_str = fix_json_string(match.group(0))
         try:
             # Converts the extracted string into a JSON object
             json_obj = json.loads(json_str)
@@ -116,3 +149,24 @@ def extract_json_from_text(text):
     else:
         print("No JSON found in the text.")
         return None
+
+
+def fix_json_string(text):
+    """
+    Converts a string formatted with single quotes and unquoted keys into a valid JSON string format.
+    This function primarily addresses two common issues:
+    1. Replaces single quotes with double quotes.
+    2. Ensures that keys in the JSON string are properly quoted with double quotes.
+
+    :param text: The string to be converted into valid JSON format.
+    :return: A string formatted as valid JSON.
+    """
+
+    # Replace single quotes with double quotes
+    text = text.replace("'", '"')
+
+    # Use a regular expression to find keys not enclosed in double quotes and correct them
+    # The pattern identifies keys (unquoted words before a colon) and wraps them in double quotes
+    text = re.sub(r'(?<=\{|\,)\s*([^"{\s]+)\s*:', r'"\1":', text)
+
+    return text
