@@ -5,10 +5,11 @@
     "metrics_sheet_name": "metrics",
     "model_cluster_chain_sheet_name": "model_cluster_chain",
     "cluster_cut_height": 0.17,
-    "method_to_infer_topics": "GPT",
+    "method_to_infer_topics": "NATIVE",
     "numeber_of_topic_to_infer": 3,
     "min_cluster_size": 5,
     "max_cluster_size": 214,
+    "repository_url":"https://github.com/maurosonzogni/model_aaxl2/blob/main/xmi/",
     "common_words_to_exclude": [
         "this",
         "instance",

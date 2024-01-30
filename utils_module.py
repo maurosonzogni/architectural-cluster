@@ -80,6 +80,7 @@ def remove_substrings(input_string, substrings_to_remove):
         input_string_lower = input_string_lower.replace(substring.lower(), '')
     return input_string_lower
 
+
 def remove_duplicate_words(input_string):
     """
     Remove duplicate words from a given string.
@@ -113,11 +114,8 @@ def remove_duplicate_words(input_string):
     return ' '.join(result)
 
 
-
-def generate_link(model_name):
-    return f'https://github.com/maurosonzogni/model_aaxl2/blob/main/xmi/{model_name}'
-
-
+def generate_link(url,model_name):
+    return f'{url}{model_name}'
 
 def extract_json_from_text(text):
     """

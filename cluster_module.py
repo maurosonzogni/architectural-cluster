@@ -1,6 +1,5 @@
 from ai_modules.gtp_module import infer_topic_with_GPT
 from utils_module import remove_numbers, remove_substrings
-
 from nltk import FreqDist
 from nltk.tokenize import word_tokenize
 
@@ -70,7 +69,10 @@ def build_cluster_contents_map(linkage_matrix, leaf_labels, cut_height, min_clus
         # Merge clusters but do not add them to the final dictionary if below the cut height
         merged_members = cluster_contents.get(cluster1, {'members': set()})['members'] | cluster_contents.get(cluster2, {'members': set()})['members']
         # For sure cluster are integer.
-        merged_clusters = str(int(cluster1)) + " | " + str(int(cluster2))
+        if height == cut_height:
+            merged_clusters = str(int(cluster1)) + " || " + str(int(cluster2))
+        else:
+            merged_clusters = str(int(cluster1)) + " | " + str(int(cluster2))
         cluster_contents[new_cluster] = {'members': merged_members, 'merged': merged_clusters}
 
         # Remove old clusters if they are below the cut height
@@ -83,9 +85,22 @@ def build_cluster_contents_map(linkage_matrix, leaf_labels, cut_height, min_clus
     # Filter out intermediate clusters formed below the cut height and those with fewer than 5 elements
     cluster_contents_map = {k: v for k, v in cluster_contents.items() if len(v['members']) >= min_cluster_size and len(v['members']) <= max_cluster_size}
 
+    # get cluster_indexes of remained clusters
+    cluster_indexes = [i for i in cluster_contents_map]
+
+    
+    for index in cluster_indexes:
+        # se numero compare in almeno un merged, allora è il più basso e sta sul taglio
+        for i in cluster_contents_map:
+        
+            if str(index) in cluster_contents_map[i]['merged']:
+                cluster_contents_map[i]['merged'] = (cluster_contents_map[i]['merged']).replace("|", "---")
+
+    # NOTE: clusters must have at least 2 elements, if at a certain height the model has not yet "joined" a cluster, it is therefore automatically excluded
+    # it is important to verify the minimum number of elements in the clusters, the requirement to have clusters with at least N elements leads to the exclusion of clusters at the cut height
+    # thus resulting in certain models not being considered at a certain level
+    
     return cluster_contents_map
-
-
 
 
 def build_cluster_information(cluster_contents, method_to_infer_topics, numeber_of_topic_to_infer, common_words_to_exclude):

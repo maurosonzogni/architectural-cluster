@@ -135,7 +135,7 @@ for item, content in clusters.items():
 
 for i in range(max_num_colonne):
     colonna_label = f'model_{i+1}'
-    cluster_df[colonna_label] = [generate_link(list(labels['members'])[i]) if i < len(
+    cluster_df[colonna_label] = [generate_link(config['repository_url'],list(labels['members'])[i]) if i < len(
         labels['members']) else '' for labels in clusters.values()]
 
 

@@ -1,6 +1,7 @@
 # Note: The openai-python  support for Azure OpenAI is in preview.
 # Note: This code sample requires OpenAI Python  version 0.28.1 or lower.
 import os
+import random
 import time
 
 import openai
@@ -19,7 +20,7 @@ def infer_topic_with_GPT(text, question, answer_format, role):
     openai.api_base = os.environ['API_BASE']
     openai.api_version = os.environ['API_VERSION']
     openai.api_key = os.environ['API_KEY']
-    
+
     # Configuration file path
     config_file_path = 'configurations/architectural_cluster_config.json'
 
@@ -34,40 +35,64 @@ def infer_topic_with_GPT(text, question, answer_format, role):
 
     if not isinstance(text, str):
         text = ' '.join(text)
-    text = text.replace("_", " ").replace("->", " ").replace("-", " ").replace(".", " ")
+    text = text.replace("_", " ").replace(
+        "->", " ").replace("-", " ").replace(".", " ")
     text = remove_numbers(text)
     text = remove_substrings(text, config['common_words_to_exclude'])
     # remove duplicate words to avoid useless token usage
     text = remove_duplicate_words(text)
-    
+
     # Construct the complete question for the API
     complete_question = question + text + answer_format
 
     message_text = [{"role": role, "content": complete_question}]
 
     token = num_tokens_from_messages(message_text)
-    max_response_tokens=800
+    max_response_tokens = 800
     total_token_required = token + max_response_tokens
-    
+
     if (total_token_required >= 16385):
-        print("token size is too large"+ token)
+        print("token size is too large" + token)
+        # NOTE Valutare se selezionare un numero di parole casuale che rientri nei 16K
+
+        token_limit = 16385 - max_response_tokens
+
+        # ~ 1.2, to be sure better set it to 1.5
+        average_tokens_per_word = 1.5
+
+        approximate_word_count = token_limit / average_tokens_per_word
+
+        # Split the string into a list of words
+        words = text.split()
+
+        # Check if the number of words to extract is less than the total number of words
+        if approximate_word_count > len(words):
+            raise ValueError(
+                "Number of words to extract is greater than the total number of words in the string.")
+
+        # Select the random words and set the new text version
+        text = ' '.join(random.sample(words, approximate_word_count))
+        # Re-construct the complete question for the API
+        complete_question = question + text + answer_format
+
+        message_text = [{"role": role, "content": complete_question}]
+
     else:
         if (total_token_required > 4096):
             engine = os.environ['ENGINE_16K']
         else:
             engine = os.environ['ENGINE_4K']
-        
+
         answer_content = openai.ChatCompletion.create(
-        engine = engine,
-        messages=message_text,
-        temperature=0.7,
-        max_tokens=max_response_tokens,
-        top_p=0.95,
-        frequency_penalty=0,
-        presence_penalty=0,
-        stop=None
-    )
-    
+            engine=engine,
+            messages=message_text,
+            temperature=0.7,
+            max_tokens=max_response_tokens,
+            top_p=0.95,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=None
+        )
 
     try:
         if 'choices' in answer_content:
@@ -94,7 +119,6 @@ def infer_topic_with_GPT(text, question, answer_format, role):
     return answer_content_json.get('topics', [])
 
 
-
 def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
     """Return the number of tokens used by a list of messages."""
     try:
@@ -109,14 +133,14 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
         "gpt-4-32k-0314",
         "gpt-4-0613",
         "gpt-4-32k-0613",
-        }:
+    }:
         tokens_per_message = 3
         tokens_per_name = 1
     else:
         raise NotImplementedError(
             f"""num_tokens_from_messages() is not implemented for model {model}. See https://github.com/openai/openai-python/blob/main/chatml.md for information on how messages are converted to tokens."""
         )
-    
+
     num_tokens = 0
     for message in messages:
         num_tokens += tokens_per_message
